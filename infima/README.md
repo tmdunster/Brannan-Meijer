@@ -13,34 +13,34 @@ Endpoint offsets such as `eps` are numerical devices used to avoid removable sin
 ## Files
 
 - `01_minimize_Hcal5.txt`  
-  Checks the lower bound for the normalised function `Hcal5(alpha,beta,zeta)` on `alpha,beta in [0,1]` and `zeta in [0,81]`.
+  Checks the lower bound for the normalised function $\mathcal H_5(\alpha,\beta,\zeta)$ on $\alpha,\beta\in[0,1]$ and $\zeta\in[0,81]$.
 
 - `02_minimize_Qcal5.txt`  
-  Checks positivity of the derivative-control function `Qcal5(alpha,beta,zeta)` on the same compact set.
+  Checks positivity of the derivative-control function $\mathcal Q_5(\alpha,\beta,\zeta)$ on the same compact set.
 
 - `03_minimize_Ptilde.txt`  
-  Checks the Watson-range main lower-bound function `Ptilde(alpha,beta,phi)` on `phi in [0,phi0]`.
+  Checks the main lower-bound function $\widetilde P(\alpha,\beta,\phi)$ on $\phi\in[0,\phi_0]$.
 
 - `04_minimize_L0.txt`  
-  Checks the lower bound for the normalised Meijer remainder kernel `L0(alpha,beta,rho;s)`.
+  Checks the lower bound for the normalised Meijer remainder function $\mathsf L_0(\alpha,\beta,\rho;s)$.
 
 - `05_minimize_tildeL0_S.txt`  
-  Checks the normalised Watson remainder kernel on the rectangle `S`, where `beta >= 1/4`.
+  Checks the lower bound for $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ on the rectangle $S$, where $\beta\ge 1/4$.
 
 - `06_minimize_tildeL0_S0.txt`  
-  Checks the normalised Watson remainder kernel on the rectangle `S0`, where `beta < 1/4`. This is the longest run.
+  Checks the lower bound for $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ on the rectangle $S_0$, where $\beta<1/4$. This is the longest run.
 
 - `07_tildeL0_corner_alpha_beta_zero.txt`  
-  Computes the limiting corner value at `alpha=beta=0` using the scaling `s=c phi`.
+  Computes the limiting corner value of $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ at $\alpha=\beta=0$, using the scaling $s=c\phi$.
 
 - `08_tildeL0_corner_phi_ge_0p03_direct.txt`  
-  Checks the `alpha=beta=0` corner expression when `phi` is bounded away from zero.
+  Checks the $\alpha=\beta=0$ corner expression when $\phi$ is bounded away from zero, using the direct variables $\phi$ and $s$.
 
 - `09_tildeL0_corner_phi_ge_0p03_c_coordinates.txt`  
-  Repeats the bounded-away-from-zero corner check using `c=s/phi` coordinates.
+  Repeats the bounded-away-from-zero corner check using the coordinate $c=s/\phi$.
 
 - `10_tildeL0_small_box_c_coordinates.txt`  
-  Performs a four-variable small-box minimisation near `alpha=beta=0` using `c=s/phi`.
+  Performs a four-variable small-box minimisation near $\alpha=\beta=0$, using the coordinate $c=s/\phi$.
 
 ## Runtime notes
 
