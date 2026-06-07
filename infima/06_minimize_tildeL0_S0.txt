@@ -1,0 +1,316 @@
+############################################################
+# Infimum check for the S0 branch of tildeL0(alpha,beta,phi;s)
+#
+# This file checks the branch used on
+#
+#   S0 = [0,1] x [0,1/4),
+#
+# namely
+#
+#   tildeL0(alpha,beta,phi;s)
+#     = s^(-1/2+beta) exp(-s) phi^(1/2) tildeL(alpha,beta,phi;s).
+#
+# This is the endpoint-sensitive branch.  The joint corner
+# alpha=beta=0 with s comparable to phi is delicate, so the raw
+# grid search avoids exact endpoints and the endpoint limits are
+# checked separately.
+#
+# The expression is arranged to remove avoidable endpoint
+# cancellation in the second term.  A reciprocal-gamma switch is
+# used for numerical stability.
+#
+# This is the most expensive global-infimum search in the collection.
+# On a modern laptop it may take several hours.  This is intentional:
+# the run is meant as a reproducibility check, not as a quick demo.
+############################################################
+
+restart:
+Digits := 50:
+
+#--------------------------------------------------
+# User input
+#--------------------------------------------------
+phi0 := 0.061:
+eps  := 1e-10:
+
+Nab := 100:
+
+# Avoid exact 0 and exact 1 in the grid search.
+# Endpoint/corner limits are handled separately in the paper.
+
+# New S0 rectangle:
+#   S0 = [0,1] x [0,1/4)
+alphagrid_S0 := [seq(eps + i*((1-eps)-eps)/Nab, i=0..Nab)]:
+betagrid_S0  := [seq(eps + j*((1/4-eps)-eps)/Nab, j=0..Nab)]:
+
+phigrid := [eps, phi0/3, 2*phi0/3, phi0]:
+
+# Derivative-root bracketing resolution in s
+Ns := 120:
+
+#--------------------------------------------------
+# Endpoint-safe factor (1-alpha)/sin(Pi*alpha)
+#--------------------------------------------------
+C1 := proc(a)
+  if evalf(abs(a-1)) < 10^(-20) then
+    return -1/Pi;
+  else
+    return (1-a)/sin(Pi*a);
+  end if;
+end proc:
+
+#--------------------------------------------------
+# Symbolic S0-branch expression and derivative.
+# The derivative is computed once and then reused.
+#
+# S0 branch:
+#   tilde L0 = s^(-1/2+beta) exp(-s) sqrt(phi) tilde L
+#
+# In the second term, the factor r^(-beta)-2^(-beta)
+# has been cancelled algebraically to avoid removable
+# endpoint singularities.
+#--------------------------------------------------
+aa := 'aa':
+bb := 'bb':
+phh := 'phh':
+s := 's':
+
+r_sym := 2*sin(phh/2):
+R_sym := sqrt(exp(2*s)+1-2*exp(s)*cos(phh)):
+
+A1_sym :=
+(1-aa)*(2^aa-r_sym^aa)/(sin(Pi*aa)*GAMMA(1+aa)):
+
+B1_sym :=
+(
+  (s/(exp(s)-1))^bb
+  *((exp(s)+1)^aa - R_sym^aa)/(2^aa-r_sym^aa)
+  - 1 - (aa-bb)*s/2
+):
+
+RG_direct_sym := 1/GAMMA(1-bb):
+RG_refl_sym   := sin(Pi*bb)*GAMMA(bb)/Pi:
+
+Term2_sym :=
+s^aa*(1-aa)*GAMMA(bb)/(Pi*GAMMA(1+aa))
+*
+(
+  ((exp(s)-1)/s)^aa
+  *(R_sym^(-bb)-(exp(s)+1)^(-bb))
+  - (r_sym^(-bb)-2^(-bb))*(1 + (aa-bb)*s/2)
+):
+
+ExprS0_direct :=
+s^(-1/2+bb)*exp(-s)*sqrt(phh)
+*
+(
+  1/(aa+bb)*
+  (
+    A1_sym*RG_direct_sym/s^bb*B1_sym
+    -
+    Term2_sym
+  )
+):
+
+ExprS0_refl :=
+s^(-1/2+bb)*exp(-s)*sqrt(phh)
+*
+(
+  1/(aa+bb)*
+  (
+    A1_sym*RG_refl_sym/s^bb*B1_sym
+    -
+    Term2_sym
+  )
+):
+
+tder0 := time():
+DExprS0_direct := diff(ExprS0_direct,s):
+DExprS0_refl   := diff(ExprS0_refl,s):
+deriv_cpu_time := time() - tder0:
+
+#--------------------------------------------------
+# Numeric raw tilde L for value evaluation.
+#
+# Uses reciprocal-gamma switch.
+# The second term is algebraically cancelled, as above.
+# The factor (1-alpha)/sin(Pi*alpha) is endpoint-safe.
+#--------------------------------------------------
+Lraw := proc(a,b,ph,ss)
+local nu, r, R, A1t, RG1mb, B1, Term1, Term2;
+
+nu := a+b:
+r  := 2*sin(ph/2):
+R  := sqrt(exp(2*ss)+1-2*exp(ss)*cos(ph)):
+
+A1t :=
+C1(a)*(2^a-r^a)/GAMMA(1+a):
+
+if b < 1/2 then
+  RG1mb := 1/GAMMA(1-b):
+else
+  RG1mb := sin(Pi*b)*GAMMA(b)/Pi:
+end if:
+
+B1 :=
+(
+  (ss/(exp(ss)-1))^b
+  *((exp(ss)+1)^a - R^a)/(2^a-r^a)
+  - 1 - (a-b)*ss/2
+):
+
+Term1 := A1t*RG1mb/ss^b*B1:
+
+Term2 :=
+ss^a*(1-a)*GAMMA(b)/(Pi*GAMMA(1+a))
+*
+(
+  ((exp(ss)-1)/ss)^a
+  *(R^(-b)-(exp(ss)+1)^(-b))
+  - (r^(-b)-2^(-b))*(1 + (a-b)*ss/2)
+):
+
+return evalf(1/nu*(Term1 - Term2));
+
+end proc:
+
+#--------------------------------------------------
+# S0-branch of eq143:
+#   tilde L0 = s^(-1/2+beta) exp(-s) sqrt(phi) tilde L
+#--------------------------------------------------
+L0S0 := proc(a,b,ph,ss)
+return evalf(ss^(-1/2+b)*exp(-ss)*sqrt(ph)*Lraw(a,b,ph,ss));
+end proc:
+
+#--------------------------------------------------
+# Stationary points in s for fixed a,b,ph.
+#
+# Workflow:
+# 1. plug the 3D grid point into the stored derivative;
+# 2. evalf immediately;
+# 3. make a 1D numerical function;
+# 4. bracket sign changes and apply fsolve on brackets.
+#--------------------------------------------------
+StationaryS0 := proc(a,b,ph)
+local dexpr, df, grid, vals, out, i, s1, s2, v1, v2;
+local root, duplicate, k;
+
+if b < 1/2 then
+  dexpr := evalf(eval(DExprS0_direct, [aa=a, bb=b, phh=ph])):
+else
+  dexpr := evalf(eval(DExprS0_refl, [aa=a, bb=b, phh=ph])):
+end if:
+
+df := unapply(dexpr, s):
+
+grid := [seq(exp(log(eps) + i*(log(10)-log(eps))/Ns), i=0..Ns)]:
+
+vals := Array(1..nops(grid)):
+
+for i from 1 to nops(grid) do
+  try
+    vals[i] := evalf(df(grid[i])):
+  catch:
+    vals[i] := undefined:
+  end try:
+end do:
+
+out := []:
+
+for i from 1 to Ns do
+  s1 := grid[i]:
+  s2 := grid[i+1]:
+  v1 := vals[i]:
+  v2 := vals[i+1]:
+
+  if type(v1,numeric) and type(v2,numeric) then
+
+    root := undefined:
+
+    if abs(v1) < 10^(-20) then
+      root := s1:
+    elif v1*v2 < 0 then
+      try
+        root := fsolve(df(s), s=s1..s2):
+      catch:
+        root := undefined:
+      end try:
+    end if:
+
+    if type(root,numeric) and root > eps and root < 10 then
+      duplicate := false:
+      for k from 1 to nops(out) do
+        if abs(root-out[k]) < 10^(-6) then
+          duplicate := true:
+        end if:
+      end do:
+
+      if not duplicate then
+        out := [op(out), evalf(root)]:
+      end if:
+    end if:
+
+  end if:
+end do:
+
+return out;
+
+end proc:
+
+#--------------------------------------------------
+# Search S0 rectangle
+#--------------------------------------------------
+bestval := infinity:
+bestdata := NULL:
+
+t0 := time():
+
+printf("\nSearching S0 rectangle: beta < 1/4\n");
+
+for ph in phigrid do
+  printf("phi = %.5e\n", ph);
+
+  for a in alphagrid_S0 do
+    for b in betagrid_S0 do
+
+      candidates := [eps, 10]:
+
+      try
+        statpts := StationaryS0(a,b,ph):
+      catch:
+        printf("StationaryS0 failed at alpha=%.12f beta=%.12f phi=%.12e\n",
+               a,b,ph):
+        statpts := []:
+      end try:
+
+      candidates := [op(candidates), op(statpts)]:
+
+      for ss in candidates do
+        try
+          val := evalf(L0S0(a,b,ph,ss)):
+        catch:
+          val := undefined:
+        end try:
+
+        if type(val,numeric) and val < bestval then
+          bestval := val:
+          bestdata := [alpha=a, beta=b, phi=ph, s=evalf(ss), value=val]:
+          printf("new best S0: alpha=%.8f beta=%.8f phi=%.5e s=%.5e val=%.15e\n",
+                 a,b,ph,evalf(ss),val):
+        end if:
+
+      end do:
+
+    end do:
+  end do:
+end do:
+
+search_cpu_time := time() - t0:
+total_cpu_time := deriv_cpu_time + search_cpu_time:
+
+printf("\nBest found on S0 rectangle:\n");
+bestdata;
+
+printf("Symbolic derivative CPU time: %.3f seconds\n", deriv_cpu_time);
+printf("Grid search CPU time: %.3f seconds\n", search_cpu_time);
+printf("Total CPU time: %.3f seconds\n", total_cpu_time);

@@ -1,0 +1,46 @@
+############################################################
+# Endpoint check for tildeL0 at alpha = beta = 0 with s comparable to phi
+#
+# This file checks the limiting corner that occurs in the S0
+# normalisation of the kernel
+#
+#   exp(-s) s^(-1/2) phi^(1/2) tildeL(0,0,phi;s).
+#
+# Direct two-variable minimisation in (phi,s) is numerically unstable,
+# because the minimum is approached at the singular corner phi -> 0,
+# s -> 0 with s proportional to phi.  Instead we put s = c phi
+# and minimise the resulting one-variable limiting expression
+#
+#   F(c) = (1/(8 Pi sqrt(c))) ln(1+c^2) ln(c^4/(1+c^2)),  c > 0.
+#
+# The output reports the minimum of F(c) and the corresponding ratio
+# c = s/phi.  The expected ratio is approximately 0.5281398833 and
+# the minimum is approximately -0.0377104213.
+############################################################
+
+restart:
+Digits := 50:
+
+with(Optimization):
+
+eps := 1e-10:
+
+# Limiting expression obtained from s = c phi, phi -> 0.
+Fcorner := c -> evalf(
+  1/(8*Pi*sqrt(c))*ln(1+c^2)*ln(c^4/(1+c^2))
+):
+
+# The negative minimum is well inside this interval.  The endpoint c = 0
+# is avoided because the expression is singular there, although the
+# limiting endpoint value is 0.
+ans := Minimize(
+  Fcorner(c),
+  c = eps..10
+):
+
+printf("minimum = %.12e\n", ans[1]);
+printf("c=s/phi = %.12e\n", rhs(ans[2][1]));
+
+# Optional consistency check: evaluate at the reported minimiser.
+c0 := rhs(ans[2][1]):
+printf("check   = %.12e\n", Fcorner(c0));

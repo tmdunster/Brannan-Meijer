@@ -1,0 +1,283 @@
+############################################################
+# Infimum check for Ptilde(alpha,beta;phi)
+#
+# This file checks the Watson-region lower-bound function
+# Ptilde(alpha,beta;phi) on
+#
+#   0 <= alpha <= 1,  0 <= beta <= 1,  0 <= phi <= phi0,
+#   phi0 = 0.061.
+#
+# The expected minimum is attained at the boundary point
+#   (alpha,beta,phi) = (1,1,phi0),
+# with value
+#   (1 - sin(phi0/2))/Pi - 0.038/(9-phi0)
+#   approximately 0.3043519050.
+#
+# For each fixed (alpha,beta), the code checks phi=0, phi=phi0,
+# and any bracketed interior stationary point in phi.  The function
+# varpi is piecewise in beta, using the S0 branch for beta<1/4 and
+# the S branch for beta>=1/4.
+############################################################
+
+restart:
+Digits := 50:
+with(ListTools):
+
+
+# -------------------------
+# Parameters / grids
+# -------------------------
+phi0 := 0.061:
+phiL := 0.0:
+phiR := phi0:
+eps  := 1e-10:
+
+Nalpha := 81:
+Nbeta  := 81:
+NbinsPhi := 120:
+Kkeep := 10:
+
+CosGrid := proc(L,R,N)
+  local i;
+  if N<=1 then return [evalf(L)]; fi;
+  [seq(evalf(L + (R-L)*(1-cos(Pi*i/(N-1)))/2), i=0..N-1)];
+end proc:
+
+alphaGrid := CosGrid(eps, 1.0-eps, Nalpha):
+betaGrid  := CosGrid(eps, 1.0-eps, Nbeta):
+
+pospart := x -> max(x,0):
+
+SafeEval := proc(expr)
+  local v;
+  try
+    v := evalf(expr);
+    if type(v, realcons) then return v; else return Float(undefined); end if;
+  catch:
+    return Float(undefined);
+  end try;
+end proc:
+
+# -------------------------
+# Endpoint-safe factor
+# -------------------------
+C1expr := proc(a)
+  if type(a,numeric) and abs(evalf(a-1)) < 10^(-8) then
+    return 1/Pi;
+  else
+    return (1-a)/sin(Pi*a);
+  end if;
+end proc:
+
+# For symbolic differentiation we keep the symbolic expression.
+C1sym := (1-alpha)/sin(Pi*alpha):
+
+# -------------------------
+# Definitions
+# -------------------------
+A1t_sym :=
+  C1sym*(2^alpha - (2*sin(phi/2))^alpha)/GAMMA(1+alpha):
+
+A2t_sym :=
+  (1-alpha)*GAMMA(beta)*((2*sin(phi/2))^(-beta) - 2^(-beta))/Pi:
+
+Main_expr :=
+  (1/(alpha+beta))*A1t_sym*
+    (1 - (1-beta)/18*pospart(beta-alpha)*phi)
+  -
+  (1/(alpha+beta))*A2t_sym*(phi/9)^(alpha+beta)*
+    (1 + (1+alpha)/18*pospart(alpha-beta)*phi):
+
+Varpi_S0_expr :=
+  (1/3)*GAMMA(3/2-beta)*(1-phi/9)^(-3/2+beta):
+
+Varpi_S_expr :=
+  (1/9)*GAMMA(2-beta)*(1-phi/9)^(-2+beta):
+
+Ptilde_S0_expr := Main_expr - 0.038*Varpi_S0_expr:
+Ptilde_S_expr  := Main_expr - 0.038*Varpi_S_expr:
+
+dP_S0_expr := simplify(diff(Ptilde_S0_expr, phi)):
+dP_S_expr  := simplify(diff(Ptilde_S_expr, phi)):
+
+P_S0  := unapply(Ptilde_S0_expr, alpha,beta,phi):
+P_S   := unapply(Ptilde_S_expr,  alpha,beta,phi):
+
+dP_S0 := unapply(dP_S0_expr, alpha,beta,phi):
+dP_S  := unapply(dP_S_expr,  alpha,beta,phi):
+
+# -------------------------
+# Stable numerical A1 at alpha close to 1
+# -------------------------
+A1safe := proc(a,ph)
+local r;
+  r := 2*sin(ph/2);
+
+  if abs(evalf(a-1)) < 10^(-8) then
+    return evalf((2-r)/Pi);
+  else
+    return evalf(C1expr(a)*(2^a-r^a)/GAMMA(1+a));
+  end if;
+end proc:
+
+A2safe := proc(a,b,ph)
+local r;
+  r := 2*sin(ph/2);
+  return evalf((1-a)*GAMMA(b)*(r^(-b)-2^(-b))/Pi);
+end proc:
+
+Varpi := proc(b,ph)
+  if b < 1/4 then
+    return evalf((1/3)*GAMMA(3/2-b)*(1-ph/9)^(-3/2+b));
+  else
+    return evalf((1/9)*GAMMA(2-b)*(1-ph/9)^(-2+b));
+  end if;
+end proc:
+
+Varpi0 := proc(b)
+  if b < 1/4 then
+    return evalf((1/3)*GAMMA(3/2-b));
+  else
+    return evalf((1/9)*GAMMA(2-b));
+  end if;
+end proc:
+
+# Dispatcher for numerical Ptilde.
+# phi=0 is treated by its limiting branch.
+Ptilde := proc(a,b,ph)
+local nu, c1minus, c2plus, A1v, A2v, val;
+
+  nu := a+b;
+
+  if ph = 0 then
+    A1v := evalf(C1expr(a)*2^a/GAMMA(1+a));
+    val := A1v/nu - 0.038*Varpi0(b);
+    return SafeEval(val);
+  end if;
+
+  c1minus := (1-b)/2*max(b-a,0);
+  c2plus  := (1+a)/2*max(a-b,0);
+
+  A1v := A1safe(a,ph);
+  A2v := A2safe(a,b,ph);
+
+  val :=
+    A1v/nu*(1-c1minus*ph/9)
+    -
+    A2v/nu*(ph/9)^nu*(1+c2plus*ph/9)
+    -
+    0.038*Varpi(b,ph);
+
+  return SafeEval(val);
+end proc:
+
+# Dispatcher for derivative.
+# Derivative is only used for positive phi, away from endpoint.
+dPphi := proc(a,b,ph)
+  if b < 1/4 then
+    return SafeEval(dP_S0(a,b,ph));
+  else
+    return SafeEval(dP_S(a,b,ph));
+  end if;
+end proc:
+
+# -------------------------
+# Minimize over phi: endpoints + stationary points
+# -------------------------
+MinOverPhi := proc(a0,b0)
+  local cand, j, a, b, g1, g2, sol, ph, v, bestv, bestph;
+
+  cand := [phiL, phiR];
+
+  for j from 0 to NbinsPhi-1 do
+    a := evalf(phiL + (phiR-phiL)*j/NbinsPhi);
+    b := evalf(phiL + (phiR-phiL)*(j+1)/NbinsPhi);
+
+    if a = phiL then a := phiL + 1e-12; fi;
+    if b = phiR then b := phiR - 1e-12; fi;
+
+    g1 := dPphi(a0,b0,a);
+    g2 := dPphi(a0,b0,b);
+
+    if type(g1,realcons) and type(g2,realcons) and g1*g2 < 0 then
+      try
+        sol := fsolve(x -> dPphi(a0,b0,x), a..b);
+      catch:
+        sol := NULL;
+      end try;
+
+      if sol <> NULL and type(sol,numeric) then
+        sol := evalf(sol);
+        if sol > phiL and sol < phiR then
+          cand := [op(cand), sol];
+        fi;
+      fi;
+    fi;
+  od;
+
+  bestv := +infinity: bestph := phiL;
+
+  for ph in cand do
+    v := Ptilde(a0,b0,ph);
+    if type(v,realcons) and v < bestv then
+      bestv := v; bestph := ph;
+    fi;
+  od;
+
+  return [bestv, bestph];
+end proc:
+
+# -------------------------
+# Keep top-K records
+# -------------------------
+InsertBest := proc(bestList, rec, K)
+  local L;
+  L := [op(bestList), rec];
+  L := sort(L, (x,y)->evalb(x[1] < y[1]));
+  if nops(L) > K then return [op(1..K, L)]; else return L; fi;
+end proc:
+
+# Reference value at the expected endpoint
+Pref := SafeEval((1 - sin(phi0/2))/Pi - 0.038/(9 - phi0)):
+printf("Reference: Ptilde(1,1;phi0) = %.12g\n\n", Pref);
+
+# -------------------------
+# Main parameter scan over (alpha,beta)
+# -------------------------
+bestVal := +infinity:
+bestRec := NULL:
+bestList := []:
+
+printf("Start parameter scan: %d (alpha,beta) pairs\n",
+       nops(alphaGrid)*nops(betaGrid));
+
+for a in alphaGrid do
+  for b in betaGrid do
+    rec := MinOverPhi(a,b);
+    if type(rec[1],realcons) then
+      bestList := InsertBest(bestList, [rec[1], a, b, rec[2]], Kkeep);
+      if rec[1] < bestVal then
+        bestVal := rec[1];
+        bestRec := [bestVal, a, b, rec[2]];
+        printf("NEW BEST %.12g at (alpha,beta,phi)=(%.6g, %.6g, %.6g)\n",
+               bestVal, a, b, rec[2]);
+      fi;
+    fi;
+  od;
+od:
+
+printf("\nDone.\n");
+if bestRec = NULL then
+  printf("No finite values were obtained.\n");
+else
+  printf("Best value found: %.12g\n", bestRec[1]);
+  printf("At (alpha,beta,phi) = (%.10g, %.10g, %.10g)\n",
+         bestRec[2], bestRec[3], bestRec[4]);
+  printf("Difference best - reference = %.3e\n", bestRec[1] - Pref);
+
+  printf("\nTop-%d candidates:\n", Kkeep);
+  for i from 1 to nops(bestList) do
+    printf("  %d: val=%.12g at (alpha,beta,phi)=(%.8g, %.8g, %.8g)\n",
+           i, bestList[i][1], bestList[i][2], bestList[i][3], bestList[i][4]);
+  od;
+fi:

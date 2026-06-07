@@ -1,0 +1,43 @@
+############################################################
+# Endpoint check away from phi=0 using c=s/phi coordinates
+#
+# This is the same alpha=beta=0 check as the previous file, but it
+# uses the better-conditioned coordinate c=s/phi.  The original
+# variable is recovered by s=c phi.
+############################################################
+
+restart:
+Digits := 50:
+
+with(Optimization):
+
+phi0 := 0.061:
+phiL := 0.03:
+eps  := 1e-10:
+
+cL := eps/phi0:
+cR := 5/phiL:
+
+Lraw00_c :=
+1/(2*Pi)*
+(
+  2*ln(sqrt(exp(2*c*phi)+1-2*exp(c*phi)*cos(phi))/(exp(c*phi)+1))*ln(exp(c*phi)-1)
+  + ln(exp(c*phi)+1)^2
+  - ln(sqrt(exp(2*c*phi)+1-2*exp(c*phi)*cos(phi)))^2
+  + ln(sin(phi/2))*ln(4*sin(phi/2)/(c*phi)^2)
+):
+
+L0small00_c :=
+exp(-c*phi)*(c*phi)^(-1/2)*sqrt(phi)*Lraw00_c:
+
+ans := Minimize(
+  L0small00_c,
+  phi=phiL..phi0,
+  c=cL..cR,
+  initialpoint={phi=phiL, c=0.53}
+):
+
+printf("minimum = %.10e\n", ans[1]);
+printf("phi     = %.10e\n", rhs(ans[2][1]));
+printf("c       = %.10e\n", rhs(ans[2][2]));
+printf("s       = %.10e\n", rhs(ans[2][1])*rhs(ans[2][2]));

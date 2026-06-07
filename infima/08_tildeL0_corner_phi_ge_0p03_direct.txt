@@ -1,0 +1,63 @@
+############################################################
+# Endpoint check for tildeL0 at alpha=beta=0 with phi bounded away from 0
+#
+# This file minimises the alpha=beta=0 expression with the S0 normalisation
+#
+#   exp(-s) s^(-1/2) phi^(1/2) tildeL(0,0,phi;s)
+#
+# on the rectangle
+#
+#   phi in [0.03, phi0],     s in [eps, 0.5].
+#
+# This is a supplemental check.  It shows that, once phi is bounded away
+# from zero, the value is less negative than the limiting corner value
+# obtained when phi -> 0 and s is proportional to phi.  The limiting
+# corner value is about -0.0377104213.
+############################################################
+
+restart:
+Digits := 50:
+
+with(Optimization):
+
+#--------------------------------------------------
+# User input
+#--------------------------------------------------
+phi0 := 0.061:
+phiL := 0.03:
+eps  := 1e-10:
+sMax := 0.5:
+
+#--------------------------------------------------
+# alpha=beta=0 limiting expression for tildeL
+#--------------------------------------------------
+Lraw00 :=
+1/(2*Pi)*
+(
+  2*ln(sqrt(exp(2*s)+1-2*exp(s)*cos(phi))/(exp(s)+1))*ln(exp(s)-1)
+  + ln(exp(s)+1)^2
+  - ln(sqrt(exp(2*s)+1-2*exp(s)*cos(phi)))^2
+  + ln(sin(phi/2))*ln(4*sin(phi/2)/s^2)
+):
+
+L0small00 :=
+exp(-s)*s^(-1/2)*sqrt(phi)*Lraw00:
+
+#--------------------------------------------------
+# Direct minimisation in the bounded-away-from-zero phi range
+#--------------------------------------------------
+ans := Minimize(
+  L0small00,
+  phi=phiL..phi0,
+  s=eps..sMax
+):
+
+printf("minimum = %.12e\n", ans[1]);
+printf("phi     = %.12e\n", rhs(ans[2][1]));
+printf("s       = %.12e\n", rhs(ans[2][2]));
+printf("s/phi   = %.12e\n", rhs(ans[2][2])/rhs(ans[2][1]));
+
+# Expected behaviour:
+# The minimum should be above -0.0377104213.  The global negative value
+# comes from the limiting corner phi -> 0 with s/phi about 0.5281399,
+# not from this phi >= 0.03 range.

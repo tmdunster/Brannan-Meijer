@@ -1,0 +1,138 @@
+############################################################
+# Small-box check near alpha=beta=0 using c=s/phi coordinates
+#
+# This file performs the four-variable minimisation used as a
+# supplemental check near the joint corner
+#
+#   alpha = beta = 0,   phi -> 0,   s = c phi.
+#
+# The original variables are alpha, beta, phi, and s.  Direct
+# minimisation in (alpha,beta,phi,s) is poorly conditioned near
+# this corner because the negative valley follows s proportional
+# to phi.  We therefore write
+#
+#   s = c phi
+#
+# and minimise in (alpha,beta,phi,c), while enforcing the original
+# s-bounds by the inequalities eps <= c phi <= smax.
+#
+# The function being minimised is the S0-normalised kernel
+#
+#   exp(-s) s^(-1/2+beta) phi^(1/2) tildeL(alpha,beta,phi;s),
+#
+# written below with s=c phi.  The expected minimum is attained at
+# the lower endpoint alpha=beta=0, phi=0, s=0 in the limiting sense,
+# with c=s/phi approximately 0.52813987365 and value approximately
+# -0.037710421382.
+############################################################
+
+restart:
+Digits := 120:
+
+with(Optimization):
+
+#--------------------------------------------------
+# User input
+#--------------------------------------------------
+phi0 := 0.061:
+eps  := 10^(-20):
+
+amax := 0.1:
+bmax := 0.1:
+smax := 0.1:
+
+#--------------------------------------------------
+# Whole-box minimisation in c=s/phi coordinates
+#--------------------------------------------------
+# Original small box:
+#
+#     eps <= alpha <= 0.1,
+#     eps <= beta  <= 0.1,
+#     eps <= phi   <= phi0,
+#     eps <= s     <= 0.1.
+#
+# With s=c phi, the original s-bounds are enforced by
+#
+#     eps <= c phi <= 0.1.
+#
+# Since eps <= phi <= phi0, an enclosing c-interval is
+#
+#     eps/phi0 <= c <= 0.1/eps.
+#
+# The additional inequalities c*phi >= eps and c*phi <= smax
+# enforce the original s-bounds exactly.
+#--------------------------------------------------
+
+cL := eps/phi0:
+cR := smax/eps:
+
+#--------------------------------------------------
+# Raw tilde L with s=c phi
+#--------------------------------------------------
+ss := c*phi:
+r  := 2*sin(phi/2):
+R  := sqrt(exp(2*ss)+1-2*exp(ss)*cos(phi)):
+
+A1t :=
+(1-alpha)*(2^alpha-r^alpha)/(sin(Pi*alpha)*GAMMA(1+alpha)):
+
+B1 :=
+(
+  (ss/(exp(ss)-1))^beta
+  *((exp(ss)+1)^alpha - R^alpha)/(2^alpha-r^alpha)
+  - 1 - (alpha-beta)*ss/2
+):
+
+Term1 :=
+A1t/(GAMMA(1-beta)*ss^beta)*B1:
+
+Term2 :=
+ss^alpha*(1-alpha)*GAMMA(beta)/(Pi*GAMMA(1+alpha))
+*
+(
+  ((exp(ss)-1)/ss)^alpha
+  *(R^(-beta)-(exp(ss)+1)^(-beta))
+  - (r^(-beta)-2^(-beta))*(1 + (alpha-beta)*ss/2)
+):
+
+Lraw_c :=
+1/(alpha+beta)*(Term1 - Term2):
+
+#--------------------------------------------------
+# S0 normalisation
+#--------------------------------------------------
+L0small_c :=
+exp(-ss)*ss^(-1/2+beta)*sqrt(phi)*Lraw_c:
+
+#--------------------------------------------------
+# Four-variable minimisation
+#--------------------------------------------------
+# Bounds are passed separately to avoid Maple warnings.
+# Only genuine inequalities are placed in the constraint set.
+#--------------------------------------------------
+
+ans := Minimize(
+  L0small_c,
+  {c*phi >= eps, c*phi <= smax},
+  alpha=eps..amax,
+  beta=eps..bmax,
+  phi=eps..phi0,
+  c=cL..cR,
+  initialpoint={alpha=eps, beta=eps, phi=10^(-8), c=0.53}
+):
+
+loc := ans[2]:
+
+aval  := eval(alpha, loc):
+bval  := eval(beta, loc):
+phval := eval(phi, loc):
+cval  := eval(c, loc):
+sval  := cval*phval:
+
+printf("minimum = %.10e\n", ans[1]);
+printf("alpha   = %.10e\n", aval);
+printf("beta    = %.10e\n", bval);
+printf("phi     = %.10e\n", phval);
+printf("c       = %.10e\n", cval);
+printf("s       = %.10e\n", sval);
+printf("s/phi   = %.10e\n", cval);
