@@ -13,7 +13,7 @@ Endpoint offsets such as `eps` are numerical devices used to avoid removable sin
 ## Files
 
 - `01_minimize_Hcal5.txt`  
-  Checks the lower bound for the normalised function $\mathcal{H}_5(\alpha,\beta,\zeta)$ on $\alpha,\beta\in[0,1]$ and $\zeta\in[0,81]$.
+  Checks the lower bound for the normalised function $ℋ_5(\alpha,\beta,\zeta)$ on $\alpha,\beta\in[0,1]$ and $\zeta\in[0,81]$.
 
 - `02_minimize_Qcal5.txt`  
   Checks positivity of the derivative-control function $\mathcal Q_5(\alpha,\beta,\zeta)$ on the same compact set.
