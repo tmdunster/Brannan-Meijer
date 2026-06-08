@@ -30,16 +30,16 @@ Endpoint offsets such as `eps` are numerical devices used to avoid removable sin
 - `06_minimize_tildeL0_S0.txt`  
   Checks the lower bound for $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ on the rectangle $S_0$, where $\beta<1/4$. This is the longest run.
 
-- `07_tildeL0_corner_alpha_beta_zero.txt`  
+- `07_tildeL0_corner_limit.txt`  
   Computes the limiting corner value of $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ at $\alpha=\beta=0$, using the scaling $s=c\phi$.
 
-- `08_tildeL0_corner_phi_ge_0p03_direct.txt`  
+- `08_tildeL0_corner_direct.txt`  
   Checks the $\alpha=\beta=0$ corner expression when $\phi$ is bounded away from zero, using the direct variables $\phi$ and $s$.
 
-- `09_tildeL0_corner_phi_ge_0p03_c_coordinates.txt`  
+- `09_tildeL0_corner_c_coords.txt`  
   Repeats the bounded-away-from-zero corner check using the coordinate $c=s/\phi$.
 
-- `10_tildeL0_small_box_c_coordinates.txt`  
+- `10_tildeL0_small_box_c_coords.txt`  
   Performs a four-variable small-box minimisation near $\alpha=\beta=0$, using the coordinate $c=s/\phi$.
 
 ## Runtime notes
