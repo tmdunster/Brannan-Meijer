@@ -23,10 +23,10 @@ Endpoint offsets such as `eps` are numerical devices used to avoid removable sin
   Checks the lower bound for $\mathsf L_0(\alpha,\beta,\rho;s)$ for $\alpha,\beta\in[0,1]$, $\rho \in [0,2\sin(\phi_0/2)$ and $s\in[0,10]$.
 
 - `05_minimize_tildeL0_S.txt`  
-  Checks the lower bound for $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ on the rectangle $S$, $\phi \in [0,\phi_0$ and $s\in[0,10]$.
+  Checks the lower bound for $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ on the rectangle $S$, $\phi \in [0,\phi_0]$ and $s\in[0,10]$.
 
 - `06_minimize_tildeL0_S0.txt`  
-  Checks the lower bound for $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ on the rectangle $S_0$, $\phi \in [0,\phi_0$ and $s\in[0,10]$. This is the longest run.
+  Checks the lower bound for $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ on the rectangle $S_0$, $\phi \in [0,\phi_0]$ and $s\in[0,10]$. This is the longest run.
 
 - `07_tildeL0_corner_limit.txt`  
   Computes the limiting corner value of $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ at $\alpha=\beta=0$, using the scaling $s=c\phi$.
