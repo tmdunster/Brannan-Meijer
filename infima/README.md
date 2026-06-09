@@ -11,34 +11,34 @@ Endpoint offsets such as `eps` are numerical devices used to avoid removable sin
 ## Files
 
 - `01_minimize_Hcal5.txt`  
-  Checks the lower bound for the normalised function $ℋ_5(\alpha,\beta,\zeta)$ on $\alpha,\beta\in[0,1]$ and $\zeta\in[0,81]$.
+  Checks positivity of $ℋ_5(\alpha,\beta,\zeta)$ on $\alpha,\beta\in[0,1]$ and $\zeta\in[0,81]$.
 
 - `02_minimize_Qcal5.txt`  
-  Checks positivity of the derivative-control function $𝒬_5(\alpha,\beta,\zeta)$ on the same compact set.
+  Checks positivity of $𝒬_5(\alpha,\beta,\zeta)$ on $\alpha,\beta\in[0,1]$ and $\zeta\in[0,81]$.
 
 - `03_minimize_Ptilde.txt`  
-  Checks the main lower-bound function $\widetilde P(\alpha,\beta,\phi)$ on $\phi\in[0,\phi_0]$.
+  Checks positivity of $\widetilde P(\alpha,\beta,\phi)$ on $\alpha,\beta\in[0,1]$ and $\phi\in[0,\phi_0]$.
 
 - `04_minimize_L0.txt`  
-  Checks the lower bound for the normalised Meijer remainder function $\mathsf L_0(\alpha,\beta,\rho;s)$.
+  Checks the lower bound for $\mathsf L_0(\alpha,\beta,\rho;s)$ on on $\alpha,\beta\in[0,1]$, $\rho \in [0,2\sin(\phi_0/2)$ and $s\in[0,10]$.
 
 - `05_minimize_tildeL0_S.txt`  
-  Checks the lower bound for $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ on the rectangle $S$, where $\beta\ge 1/4$.
+  Checks the lower bound for $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ on the rectangle $S$, $\phi \in [0,\phi_0$ and $s\in[0,10]$.
 
 - `06_minimize_tildeL0_S0.txt`  
-  Checks the lower bound for $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ on the rectangle $S_0$, where $\beta<1/4$. This is the longest run.
+  Checks the lower bound for $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ on the rectangle $S_0$, $\phi \in [0,\phi_0$ and $s\in[0,10]$. This is the longest run.
 
 - `07_tildeL0_corner_limit.txt`  
   Computes the limiting corner value of $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ at $\alpha=\beta=0$, using the scaling $s=c\phi$.
 
 - `08_tildeL0_corner_direct.txt`  
-  Checks the $\alpha=\beta=0$ corner expression when $\phi$ is bounded away from zero, using the direct variables $\phi$ and $s$.
+  Checks the $\alpha=\beta=0$ corner expression of $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ when $\phi$ is bounded away from zero, using the direct variables $\phi$ and $s$.
 
 - `09_tildeL0_corner_c_coords.txt`  
-  Repeats the bounded-away-from-zero corner check using the coordinate $c=s/\phi$.
+  Repeats the bounded-away-from-zero corner of $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ check using the coordinate $c=s/\phi$.
 
 - `10_tildeL0_small_box_c_coords.txt`  
-  Performs a four-variable small-box minimisation near $\alpha=\beta=0$, using the coordinate $c=s/\phi$.
+  Performs a four-variable small-box minimisation of $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ near $\alpha=\beta=0$, using the coordinate $c=s/\phi$.
 
 ## Runtime notes
 
