@@ -22,6 +22,6 @@
   Animation of $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ for $\phi=\phi_0$ and $s\in[0,5]$.
 
 - `tildeL0-s-phiTiny.gif`  
-  Animation of $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ for $\phi=10^{-50}$ and $s\in[0,5]$.
+  Animation of $\widetilde{\mathsf L}_0(\alpha,\beta,\phi;s)$ for $\phi=10^{-50}$ and $s\in[10^{-30},5]$.
 
 All animations are plotted over $\alpha,\beta\in[0,1]$.
