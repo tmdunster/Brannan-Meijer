@@ -40,6 +40,9 @@ Nab := 60:
 alphagrid_S := [seq(eps + i*((1-eps)-eps)/Nab, i=0..Nab)]:
 betagrid_S  := [seq(1/4 + j*((1-eps)-1/4)/Nab, j=0..Nab)]:
 
+# Four phi samples only. This script is a coarse grid check on
+# eps<=s<=10; continuous-phi searches on this interval are separate.
+# File 12_minimize_tildeL0_S_tail.txt supplies the s>=10 tail check.
 phigrid := [eps, phi0/3, 2*phi0/3, phi0]:
 
 # Derivative-root bracketing resolution in s
@@ -49,8 +52,8 @@ Ns := 160:
 # Endpoint-safe factor (1-alpha)/sin(Pi*alpha)
 #--------------------------------------------------
 C1 := proc(a)
-  if evalf(abs(a-1)) < 10^(-20) then
-    return -1/Pi;
+  if a = 1 then
+    return 1/Pi;
   else
     return (1-a)/sin(Pi*a);
   end if;
@@ -73,7 +76,7 @@ phh := 'phh':
 s := 's':
 
 r_sym := 2*sin(phh/2):
-R_sym := sqrt(exp(2*s)+1-2*exp(s)*cos(phh)):
+R_sym := sqrt((exp(s)-1)^2+4*sin(phh/2)^2*exp(s)):
 
 A1_sym :=
 (1-aa)*(2^aa-r_sym^aa)/(sin(Pi*aa)*GAMMA(1+aa)):
@@ -138,7 +141,7 @@ local nu, r, R, A1t, RG1mb, B1, Term1, Term2;
 
 nu := a+b:
 r  := 2*sin(ph/2):
-R  := sqrt(exp(2*ss)+1-2*exp(ss)*cos(ph)):
+R  := sqrt((exp(ss)-1)^2+4*sin(ph/2)^2*exp(ss)):
 
 A1t :=
 C1(a)*(2^a-r^a)/GAMMA(1+a):

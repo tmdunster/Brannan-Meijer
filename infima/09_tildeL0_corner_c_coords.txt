@@ -1,9 +1,10 @@
 ############################################################
 # Endpoint check away from phi=0 using c=s/phi coordinates
 #
-# This is the same alpha=beta=0 check as the previous file, but it
-# uses the better-conditioned coordinate c=s/phi.  The original
-# variable is recovered by s=c phi.
+# This uses the same alpha=beta=0 expression as file 08, on a
+# broader supplemental c-rectangle: phiL<=phi<=phi0 and cL<=c<=cR.
+# Here cL=eps/phi0 and cR=5/phiL, and s=c*phi. The rectangle
+# contains the file-08 search domain but also additional points.
 ############################################################
 
 restart:
@@ -21,9 +22,9 @@ cR := 5/phiL:
 Lraw00_c :=
 1/(2*Pi)*
 (
-  2*ln(sqrt(exp(2*c*phi)+1-2*exp(c*phi)*cos(phi))/(exp(c*phi)+1))*ln(exp(c*phi)-1)
+  2*ln(sqrt((exp(c*phi)-1)^2+4*sin(phi/2)^2*exp(c*phi))/(exp(c*phi)+1))*ln(exp(c*phi)-1)
   + ln(exp(c*phi)+1)^2
-  - ln(sqrt(exp(2*c*phi)+1-2*exp(c*phi)*cos(phi)))^2
+  - ln(sqrt((exp(c*phi)-1)^2+4*sin(phi/2)^2*exp(c*phi)))^2
   + ln(sin(phi/2))*ln(4*sin(phi/2)/(c*phi)^2)
 ):
 
@@ -38,6 +39,6 @@ ans := Minimize(
 ):
 
 printf("minimum = %.10e\n", ans[1]);
-printf("phi     = %.10e\n", rhs(ans[2][1]));
-printf("c       = %.10e\n", rhs(ans[2][2]));
-printf("s       = %.10e\n", rhs(ans[2][1])*rhs(ans[2][2]));
+printf("phi     = %.10e\n", eval(phi,ans[2]));
+printf("c       = %.10e\n", eval(c,ans[2]));
+printf("s       = %.10e\n", eval(phi,ans[2])*eval(c,ans[2]));

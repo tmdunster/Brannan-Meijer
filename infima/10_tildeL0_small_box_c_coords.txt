@@ -71,7 +71,7 @@ cR := smax/eps:
 #--------------------------------------------------
 ss := c*phi:
 r  := 2*sin(phi/2):
-R  := sqrt(exp(2*ss)+1-2*exp(ss)*cos(phi)):
+R  := sqrt((exp(ss)-1)^2+r^2*exp(ss)):
 
 A1t :=
 (1-alpha)*(2^alpha-r^alpha)/(sin(Pi*alpha)*GAMMA(1+alpha)):

@@ -1,0 +1,237 @@
+############################################################
+# Tail check, s>=10, by t=1/s in [0,0.1].
+# S branch: beta>=1/4; normalization s^(beta-1)*exp(-s)*phi.
+#
+# alpha=1/(1+exp(-A)), beta=1/(1+exp(-B)),
+# phi=phi0*exp(-P). Each transformed box is split into cells,
+# with matrix-form Optimization:-NLPSolve at every cell centre.
+# Exact alpha/beta edges are approached exponentially; their
+# endpoint limits are not substituted into the interior formulas.
+# The t=0 value is supplied analytically as zero.
+#
+# Run the complete standalone file. No Maple run results are
+# claimed by the accompanying independent formula checks.
+############################################################
+
+restart:
+Digits := 100:
+UseHardwareFloats := false:
+
+phi0 := 61/1000:
+logitLimit := 30:
+pMax := 30:
+tMax := 1/10:
+
+# Four cells per direction by default: 4^4 local minimizations.
+# Set Ncells:=[1,1,1,1] for a short first run; increase for refinement.
+Ncells := [4,4,4,4]:
+iterationLimit := 250:
+optimalityTol := 10^(-16):
+# Used only to check returned coordinates; not an optimizer option.
+boundCheckTol := 10^(-20):
+
+# These helpers are repeated so that each tail file is standalone.
+Logistic := z -> evalf(1/(1+exp(-z))):
+
+IsFiniteReal := proc(v)
+    return evalb(type(v,realcons)
+                 and not has(v,undefined) and not has(v,infinity));
+end proc:
+
+# All index tuples [i1,...,in], with 0<=ij<counts[j].
+IndexTuples := proc(counts)
+    local out,expanded,prefix,n,j;
+    out := [[]];
+    for n in counts do
+        expanded := [];
+        for prefix in out do
+            for j from 0 to n-1 do
+                expanded := [op(expanded),[op(prefix),j]];
+            end do;
+        end do;
+        out := expanded;
+    end do;
+    return out;
+end proc:
+
+# Matrix-form NLPSolve uses a Vector callback and numeric derivatives.
+# The physical objective F and its argument order are unchanged.
+# Every cell starts at its centre.
+# Vertices are also evaluated, including the exact t=0 face.
+ScanCells := proc(F,lower,upper,counts,caption)
+    local n,steps,j,idx,pt,ranges,centre,ans,v,best,bestpoint;
+    local vertices,cells,nOK,nFailed,nVertexFailed,failures;
+    local vectorF,cellBounds;
+    n := nops(lower);
+    vectorF := proc(X)
+        local k;
+        return F(seq(X[k],k=1..n));
+    end proc;
+    steps := [seq((upper[j]-lower[j])/counts[j],j=1..n)];
+    vertices := IndexTuples([seq(counts[j]+1,j=1..n)]);
+    cells := IndexTuples(counts);
+    best := infinity;
+    bestpoint := [];
+    nOK := 0;
+    nFailed := 0;
+    nVertexFailed := 0;
+    failures := [];
+    printf("\n%s: %d vertices and %d cells\n",
+           caption,nops(vertices),nops(cells));
+
+    for idx in vertices do
+        pt := [seq(evalf(lower[j]+idx[j]*steps[j]),j=1..n)];
+        try
+            v := evalf(F(op(pt)));
+            if not IsFiniteReal(v) then error "nonfinite vertex"; end if;
+            if v<best then best := v; bestpoint := pt; end if;
+        catch:
+            nVertexFailed := nVertexFailed+1;
+            if nVertexFailed<=3 then
+                printf("Vertex %a failed: %a\n",idx,lastexception);
+            end if;
+        end try;
+    end do;
+
+    for idx in cells do
+        ranges := [seq(evalf(lower[j]+idx[j]*steps[j])
+                       ..evalf(lower[j]+(idx[j]+1)*steps[j]),j=1..n)];
+        centre := [seq(evalf(lower[j]+(idx[j]+1/2)*steps[j]),j=1..n)];
+        try
+            cellBounds := [
+                Vector([seq(op(1,ranges[j]),j=1..n)]),
+                Vector([seq(op(2,ranges[j]),j=1..n)])];
+            ans := Optimization:-NLPSolve(
+                n,vectorF,[],cellBounds,
+                initialpoint=Vector(centre),
+                method=sqp,iterationlimit=iterationLimit,
+                optimalitytolerance=optimalityTol);
+            if not type(ans,list) or nops(ans)<>2 then
+                error "unexpected optimizer result";
+            end if;
+            pt := [seq(evalf(ans[2][j]),j=1..n)];
+            for j from 1 to n do
+                if not IsFiniteReal(pt[j]) then error "nonfinite coordinate"; end if;
+                if pt[j]<op(1,ranges[j])-100*boundCheckTol
+                   or pt[j]>op(2,ranges[j])+100*boundCheckTol then
+                    error "minimizer outside its cell";
+                end if;
+                # Remove only solver feasibility roundoff at a cell face.
+                pt[j] := max(op(1,ranges[j]),min(op(2,ranges[j]),pt[j]));
+            end do;
+            v := evalf(F(op(pt)));
+            if not IsFiniteReal(v) then error "nonfinite minimum"; end if;
+            nOK := nOK+1;
+            if v<best then
+                best := v;
+                bestpoint := pt;
+                printf("NEW BEST %.16g at transformed point %a\n",v,evalf[8](pt));
+            end if;
+        catch:
+            nFailed := nFailed+1;
+            if nops(failures)<10 then failures := [op(failures),idx]; end if;
+            if nFailed<=3 then
+                printf("Cell %a failed: %a\n",idx,lastexception);
+            end if;
+        end try;
+    end do;
+
+    printf("Successful cells: %d; failed cells: %d; failed vertices: %d\n",
+           nOK,nFailed,nVertexFailed);
+    if nops(bestpoint)=0 then error "No finite candidate values were obtained"; end if;
+    printf("Smallest value found: %.20g\n",best);
+    printf("At transformed point: %a\n",evalf[8](bestpoint));
+    if nFailed+nVertexFailed>0 then
+        printf("Inspect failures before accepting this run. First failed cells:\n");
+        print(failures);
+        error "Incomplete tail scan: %1 failed cells and %2 failed vertices",
+              nFailed,nVertexFailed;
+    end if;
+    return [best,bestpoint,nOK,nFailed,nVertexFailed];
+end proc:
+
+# The normalized kernel tildeL0(alpha,beta,phi,1/t).
+# h=1 is the S branch; h=1/2 is the S0 branch. Powers of bounded
+# quantities are evaluated directly at the working precision.
+TildeL0Tail := proc(a::numeric,b::numeric,ph::numeric,t::numeric,h::numeric)
+    local s,r,x,v,u,R,C,D,E,p,A,B,main,poly,C1;
+    if t=0 then return 0.0; end if;
+    if t<0 then error "t must be nonnegative"; end if;
+    s := 1/t;
+    if ph=0 then
+        if h=1 and b=1 then
+            return evalf((1-a)*exp(-s)*s^a
+                 *(1-(1-a)*s/2)/(Pi*GAMMA(2+a)));
+        end if;
+        return 0.0;
+    end if;
+    r := 2*sin(ph/2);
+    x := exp(-s);
+    v := 1+x;
+    u := 1-x;
+    R := sqrt(u^2+r^2*x);
+    C := u^(-b)*(v^a-R^a);
+    D := u^a*(v^(-b)-R^(-b));
+    E := exp(-(1-a+b)*s);
+    p := 1+(a-b)*s/2;
+    if a=1 then C1 := 1/Pi; else C1 := (1-a)/sin(Pi*a); end if;
+    # Reflection identity: 1/Gamma(1-b)=sin(Pi*b)*Gamma(b)/Pi.
+    A := C1*sin(Pi*b)*GAMMA(b)/(Pi*GAMMA(1+a));
+    B := (1-a)*GAMMA(b)/(Pi*GAMMA(1+a));
+    main := E*s^(b-h)*(A*C+B*D);
+    poly := exp(-s)*p*(B*(r^(-b)-2^(-b))*s^(a+b-h)
+                      -A*(2^a-r^a)*s^(-h));
+    return evalf(ph^h*(main+poly)/(a+b));
+end proc:
+
+# The S0 search includes its one-sided closure at beta=1/4,
+# evaluated with the S0 normalization, when this is the S0 file.
+Objective := proc(A::numeric,B::numeric,P::numeric,t::numeric)
+    return TildeL0Tail(Logistic(A),Logistic(B),phi0*exp(-P),t,1);
+end proc:
+
+referenceValue := -0.0377104213819363:
+result := FAIL:
+result := ScanCells(Objective,[-logitLimit,-ln(3),0,0],
+                    [logitLimit,logitLimit,pMax,tMax],Ncells,"tildeL0 S tail"):
+
+# A failed ScanCells call leaves result=FAIL, so no secondary
+# arithmetic or printf errors are generated by the summary.
+if type(result,list) then
+    printf("Difference from the s<=10 reference: %.16g\n",result[1]-referenceValue);
+    if result[1]<referenceValue then
+        printf("A smaller tail value was found; inspect it.\n");
+    else
+        printf("No smaller tail value was found in this run.\n");
+    end if;
+    if nops(result[2])=4 then
+        loc := result[2]:
+        printf("alpha=%.16g, beta=%.16g, phi=%.16g, t=%.16g\n",
+               Logistic(loc[1]),Logistic(loc[2]),phi0*exp(-loc[3]),loc[4]);
+        if loc[4]=0 then printf("s=infinity (limiting value zero).\n");
+        else printf("s=%.16g\n",1/loc[4]); end if;
+    end if;
+else
+    printf("Tail search incomplete; no concluding comparison is available.\n");
+end if;
+
+# Exact phi=0 boundary. For beta<1 the S limit is zero.
+# At beta=1, the limiting kernel is bounded below, for all alpha in [0,1], by
+# s*(1-s/2)*exp(-s)/(2*Pi). Its minimum on s>=10 occurs at s=10.
+EdgeLowerBound := proc(t::numeric)
+    local s;
+    if t=0 then return 0.0; end if;
+    s := 1/t;
+    return evalf(s*(1-s/2)*exp(-s)/(2*Pi));
+end proc:
+edgeResult := FAIL:
+edgeResult := ScanCells(EdgeLowerBound,[0],[tMax],[Ncells[4]],
+                         "phi=0, beta=1 tail lower bound"):
+edgeExact := evalf(-20/(Pi*exp(10))):
+if type(edgeResult,list) then
+    printf("phi=0, beta=1 tail lower-bound minimum: %.20g at t=%.16g\n",
+           edgeResult[1],edgeResult[2][1]);
+else
+    printf("phi=0, beta=1 tail lower-bound scan incomplete.\n");
+end if;
+printf("Exact lower-bound reference: %.20g at t=0.1\n",edgeExact):

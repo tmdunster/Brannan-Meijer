@@ -7,12 +7,14 @@
 #      = L(alpha,beta,rho;s)
 #        / { sigma(alpha,beta) s^(1-beta) exp(s) }.
 #
-# The search domain is
+# The mathematical domain is
 #   0 <= alpha <= 1,  0 <= beta <= 1,
 #   0 <= rho <= 2 sin(phi0/2),  0 <= s < infinity,
-# with phi0 = 0.061.
+# with phi0 = 0.061. This script searches sLo<=s<=sHi=10 only;
+# the s->0 endpoint limits are treated separately in the paper.
+# File 11_minimize_L0_tail.txt supplies the s>=10 tail check.
 #
-# The expected infimum is approximately -0.0253581510, attained
+# The expected infimum is approximately -0.025358150867, attained
 # at the boundary point (alpha,beta,rho,s)=(0,1,0,s0), where
 # s0 is approximately 0.7149617952.
 #
@@ -82,29 +84,29 @@ InsertBest := proc(bestList, item, K)
   return L;
 end proc:
 
-# ---------------- core definitions from the paper ----------------
+# ---------------- kernel and normalization definitions ----------------
 Upsilon := (s,rho) -> (exp(s)-1)^2 + rho^2*exp(s):
 p := (alpha,beta,s) -> 1 + (alpha-beta)*s/2:
 
-# Watson kernels (formula in the manuscript)-(10))
+# Watson remainder kernels after subtracting the linear term.
 K1 := (alpha,beta,s) ->
   ( (s/(exp(s)-1))^beta * ((exp(s)+1)/2)^alpha - 1 - (alpha-beta)*s/2 )/s^2:
 
 K2 := (alpha,beta,s) ->
   ( ((exp(s)-1)/s)^alpha * (2/(exp(s)+1))^beta - 1 - (alpha-beta)*s/2 )/s^2:
 
-# Uniform correction kernels (formula in the manuscript),(30))
+# Uniform quadratic-model correction kernels.
 K1t := (alpha,beta,rho,s) ->
   ( (s/(exp(s)-1))^beta * (Upsilon(s,rho)/(s^2+rho^2))^(alpha/2) - p(alpha,beta,s) )/s^2:
 
 K2t := (alpha,beta,rho,s) ->
   ( ((exp(s)-1)/s)^alpha * ((s^2+rho^2)/Upsilon(s,rho))^(beta/2) - p(alpha,beta,s) )/s^2:
 
-# sigma (definition in the manuscript)
+# Parameter normalization sigma(alpha,beta).
 sigma := (alpha,beta) ->
   (alpha*beta*(alpha+beta)*(sin(Pi*alpha)+sin(Pi*beta)))/(alpha*(1-alpha)+beta*(1-beta)):
 
-# Remainder kernel L (definition in the manuscript)
+# Combined remainder kernel L(alpha,beta,rho,s).
 Lraw := (alpha,beta,rho,s) ->
   sin(Pi*beta)*
    ( 2^alpha*s^(2-beta)*K1(alpha,beta,s)
@@ -113,7 +115,7 @@ Lraw := (alpha,beta,rho,s) ->
    ( 2^(-beta)*s^(2+alpha)*K2(alpha,beta,s)
      - s^(2+alpha)*(s^2+rho^2)^(-beta/2)*K2t(alpha,beta,rho,s) ):
 
-# Normalized kernel L0 (the definition in the manuscript)
+# Normalized kernel L0(alpha,beta,rho,s).
 L0_expr := Lraw(alpha,beta,rho,s)/( sigma(alpha,beta)*s^(1-beta)*exp(s) ):
 
 # Exact derivative d/ds L0 (symbolic once, then numerical evaluation)
@@ -126,8 +128,8 @@ dL0ds := unapply(dL0ds_expr, alpha,beta,rho,s):
 MinOverS := proc(a,b,r)
   local cand, j, sL, sR, gL, gR, sol, roots, ss, v, bestv, bests;
 
-  # always check endpoint s=10
-  cand := [sHi];
+  # check both finite endpoints of the scanned s interval
+  cand := [sLo,sHi];
 
   # bracket sign changes of d/ds L0 on a partition of (0,10)
   roots := []:

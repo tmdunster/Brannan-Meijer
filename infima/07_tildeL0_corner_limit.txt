@@ -14,7 +14,7 @@
 #   F(c) = (1/(8 Pi sqrt(c))) ln(1+c^2) ln(c^4/(1+c^2)),  c > 0.
 #
 # The output reports the minimum of F(c) and the corresponding ratio
-# c = s/phi.  The expected ratio is approximately 0.5281398833 and
+# c = s/phi.  The expected ratio is approximately 0.52813987365 and
 # the minimum is approximately -0.0377104213.
 ############################################################
 

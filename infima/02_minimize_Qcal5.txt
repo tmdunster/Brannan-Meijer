@@ -1,341 +1,153 @@
 ############################################################
-# Infimum check for Qcal5(alpha,beta,zeta)
+# Two-variable check of the lower bound Qcal5star(alpha,beta).
+# Qcal5(alpha,beta,zeta) >= Qcal5star(alpha,beta) for 0<=zeta<=81.
 #
-# This file checks the normalised derivative lower-bound function
+# All numerical Meijer evaluations are at zeta=81; the needed
+# zeta=0 endpoint is evaluated using its explicit gamma value.
 #
-#   Qcal5(alpha,beta,zeta)
-#     = { h1(alpha,beta) 5^alpha + h2(alpha,beta) 5^(-beta)
-#         + h3(alpha,beta;zeta) - (1/10) [h4(alpha,beta;zeta)]_+ }
-#       / { alpha beta (alpha+beta) }.
+# Expected boundary infimum: 3.12745586485783363468...,
+# approached at (alpha,beta)=(0,1).
 #
-# The expected minimum is attained at the boundary point
-#   (alpha,beta,zeta) = (0,1,81),
-# with value approximately 3.12745.
-#
-# The code uses the Meijer-G formulae for M_{j,k}, with the
-# gamma-limit values at zeta=0.  For each fixed (alpha,beta)
-# it checks zeta=0, zeta=81, and any bracketed interior
-# stationary point in zeta.  The zeta derivative is computed
-# from the integral identities for dM_{j,k}/dzeta.  The positive
-# part [h4]_+ is differentiated piecewise away from the kink.
+# Run this entire standalone file. It scans a finite parameter
+# grid and reports every failed evaluation; it does not certify
+# a continuous global minimum by itself.
 ############################################################
 
 restart:
-Digits := 50:
-with(ListTools):
+Digits := 60:
 
-
-# -------------------------
-# Parameters and grids
-# -------------------------
-zetaMax := 81.0:
-
+# Interior, endpoint-biased parameter grid. Exact endpoint limits are
+# evaluated separately; the origin has directional limits.
 Nalpha := 61:
-Nbeta  := 61:
-eps := 1e-10:           # keep endpoint-biased grids strictly inside the open endpoints
-
-NbinsZeta := 80:        # bracketing bins for stationary points in zeta
-Kkeep := 10:            # keep top-K smallest values for inspection
+Nbeta := 61:
+eps := 10^(-10):
+Kkeep := 10:
 
 CosGrid := proc(L,R,N)
-  local i;
-  if N<=1 then return [evalf(L)]; fi;
-  [seq( evalf(L + (R-L)*(1-cos(Pi*i/(N-1)))/2), i=0..N-1 )];
+    local i;
+    if N <= 1 then return [evalf(L)]; end if;
+    return [seq(evalf(L+(R-L)*(1-cos(Pi*i/(N-1)))/2),
+                i=0..N-1)];
 end proc:
 
-alphaGrid := CosGrid(eps, 1.0-eps, Nalpha):
-betaGrid  := CosGrid(eps, 1.0-eps, Nbeta):
+alphaGrid := CosGrid(eps,1-eps,Nalpha):
+betaGrid := CosGrid(eps,1-eps,Nbeta):
 
-# -------------------------
-# Safe numeric evaluation helper
-# -------------------------
-SafeEval := proc(expr)
-  local v;
-  try
-    v := evalf(expr);
-    if type(v, realcons) then return v; else return Float(undefined); end if;
-  catch:
-    return Float(undefined);
-  end try;
+IsFiniteReal := proc(v)
+    return evalb(type(v,realcons)
+                 and not has(v,undefined) and not has(v,infinity));
 end proc:
 
-pospart := x -> max(x,0):
-
-# -------------------------
-# M_{j,k}(alpha,beta;zeta) via MeijerG (the Meijer-G formulae in the manuscript)
-#
-# zeta=0 gamma limits (the gamma-limit formula at zeta=0):
-#   M_{j,k}(a,b;0) = Gamma(1+k+a-b).
-#
-# Maple 2020 MeijerG syntax:
-#   MeijerG([[a],[]], [[b1,b2,b3],[]], z)
-# -------------------------
-M_at0 := (a,b,k) -> GAMMA(1+k+a-b):
-
-MeijerSafe := proc(a,b1,b2,b3,z)
-  local v;
-  try
-    v := MeijerG([[a],[]], [[b1,b2,b3],[]], z);
-    return SafeEval(v);
-  catch:
-    return Float(undefined);
-  end try;
+# Meijer integrals at zeta=81 only, for k=0 or k=1.
+# Their zeta=0 values, when needed below, are explicit gamma values.
+M1_81 := proc(a::numeric,b::numeric,k::nonnegint)
+    return evalf(
+        81^((1+k+a-b)/2)/(2*sqrt(Pi)*GAMMA(-a/2))
+        *MeijerG([[(1-k+b)/2],[]],
+                 [[-(1+k+a-b)/2,0,1/2],[]],81/4)
+    );
 end proc:
 
-# M_{1,0}
-M10 := proc(a,b,z)
-  local aa, b1,b2,b3, Gv, pref;
-  if z = 0 then return SafeEval(M_at0(a,b,0)); fi;
-
-  aa := (1+b)/2;
-  b1 := -(1+a-b)/2; b2 := 0; b3 := 1/2;
-
-  Gv := MeijerSafe(aa,b1,b2,b3, z/4);
-  if not(type(Gv,realcons)) then return Float(undefined); fi;
-
-  pref := SafeEval( z^((1+a-b)/2)/(2*sqrt(Pi)*GAMMA(-a/2)) );
-  if not(type(pref,realcons)) then return Float(undefined); fi;
-
-  return SafeEval(pref*Gv);
+M2_81 := proc(a::numeric,b::numeric,k::nonnegint)
+    return evalf(
+        81^((1+k+a-b)/2)/(2*sqrt(Pi)*GAMMA(b/2))
+        *MeijerG([[(1-k-a)/2],[]],
+                 [[-(1+k+a-b)/2,0,1/2],[]],81/4)
+    );
 end proc:
 
-# M_{1,1}
-M11 := proc(a,b,z)
-  local aa, b1,b2,b3, Gv, pref;
-  if z = 0 then return SafeEval(M_at0(a,b,1)); fi;
-
-  aa := b/2;
-  b1 := -(2+a-b)/2; b2 := 0; b3 := 1/2;
-
-  Gv := MeijerSafe(aa,b1,b2,b3, z/4);
-  if not(type(Gv,realcons)) then return Float(undefined); fi;
-
-  pref := SafeEval( z^((2+a-b)/2)/(2*sqrt(Pi)*GAMMA(-a/2)) );
-  if not(type(pref,realcons)) then return Float(undefined); fi;
-
-  return SafeEval(pref*Gv);
+InsertBest := proc(records,item,K)
+    local L;
+    L := sort([op(records),item],(x,y)->evalb(x[1]<y[1]));
+    if nops(L)>K then return L[1..K]; end if;
+    return L;
 end proc:
 
-# M_{2,0}
-M20 := proc(a,b,z)
-  local aa, b1,b2,b3, Gv, pref;
-  if z = 0 then return SafeEval(M_at0(a,b,0)); fi;
+# Interior evaluator of the piecewise lower bound.
+Qcal5star := proc(a::numeric,b::numeric)
+    local aa,bb,psi0,main,penalty;
+    aa := evalf(a);
+    bb := evalf(b);
 
-  aa := (1-a)/2;
-  b1 := -(1+a-b)/2; b2 := 0; b3 := 1/2;
+    psi0 := sin(Pi*bb)*M1_81(aa,bb,0)
+            +sin(Pi*aa)*M2_81(aa,bb,0);
 
-  Gv := MeijerSafe(aa,b1,b2,b3, z/4);
-  if not(type(Gv,realcons)) then return Float(undefined); fi;
+    main := Pi*10^aa/GAMMA(bb)
+        +sin(Pi*aa)*GAMMA(1+aa)*(1-aa-bb)*10^(-bb)
+        -(1-aa)*psi0;
 
-  pref := SafeEval( z^((1+a-b)/2)/(2*sqrt(Pi)*GAMMA(b/2)) );
-  if not(type(pref,realcons)) then return Float(undefined); fi;
+    penalty := 0;
+    if aa < bb then
+        # For alpha<beta, M21(alpha,beta,0) = Gamma(2+alpha-beta).
+        penalty := aa*(bb-aa)/10
+            *(sin(Pi*bb)*M1_81(aa,bb,1)
+              +sin(Pi*aa)*GAMMA(2+aa-bb));
+    end if;
 
-  return SafeEval(pref*Gv);
+    return evalf((main-penalty)/(aa*bb*(aa+bb)));
 end proc:
 
-# M_{2,1}
-M21 := proc(a,b,z)
-  local aa, b1,b2,b3, Gv, pref;
-  if z = 0 then return SafeEval(M_at0(a,b,1)); fi;
+# Exact limiting expression for the expected corner value.
+referenceValue := evalf(Pi*(1+ln(10/9)
+    -MeijerG([[1/2],[]],[[0,0,1/2],[]],81/4)/(2*Pi))):
+printf("Boundary reference Qcal5star: %.20g\n",referenceValue):
+printf("Reference point: alpha tends to 0; beta tends to 1.\n"):
 
-  aa := -a/2;
-  b1 := -(2+a-b)/2; b2 := 0; b3 := 1/2;
-
-  Gv := MeijerSafe(aa,b1,b2,b3, z/4);
-  if not(type(Gv,realcons)) then return Float(undefined); fi;
-
-  pref := SafeEval( z^((2+a-b)/2)/(2*sqrt(Pi)*GAMMA(b/2)) );
-  if not(type(pref,realcons)) then return Float(undefined); fi;
-
-  return SafeEval(pref*Gv);
-end proc:
-
-# -------------------------
-# Exact zeta-derivatives of M_{j,k} from integral identities
-# -------------------------
-dM10 := (a,b,z) -> SafeEval( (a/2)*M10(a-2,b,z) ):
-dM11 := (a,b,z) -> SafeEval( (a/2)*M11(a-2,b,z) ):
-dM20 := (a,b,z) -> SafeEval( -(b/2)*M20(a,b+2,z) ):
-dM21 := (a,b,z) -> SafeEval( -(b/2)*M21(a,b+2,z) ):
-
-# -------------------------
-# h1..h4 and Qcal5 = mathcal Q_5 (the definitions of h1,h2,h3,h4 and Qcal5)
-# -------------------------
-h1 := (a,b) -> 2^a*sin(Pi*b)*GAMMA(1-b):
-h2 := (a,b) -> sin(Pi*a)*2^(-b)*GAMMA(1+a)*(1-a-b):
-
-h3 := proc(a,b,z)
-  local m10,m20;
-  m10 := M10(a,b,z);
-  m20 := M20(a,b,z);
-  if not(type(m10,realcons) and type(m20,realcons)) then return Float(undefined); fi;
-  return SafeEval( -(1-a)*sin(Pi*b)*m10 - (1-a)*sin(Pi*a)*m20 );
-end proc:
-
-h4 := proc(a,b,z)
-  local m11,m21, term;
-  m11 := M11(a,b,z);
-  m21 := M21(a,b,z);
-  if not(type(m11,realcons) and type(m21,realcons)) then return Float(undefined); fi;
-
-  term := a*(b-a)*sin(Pi*b)*m11
-        + sin(Pi*a)*( a*(b-a)*m21 + GAMMA(2+a)*pospart(a^2-b^2)*10^(-b) );
-
-  return SafeEval(term);
-end proc:
-
-# Qcal5(alpha,beta,zeta) = ( h1*5^alpha + h2*5^{-beta} + h3 - (1/10)[h4]_+ ) / (alpha*beta*(alpha+beta))
-Qcal5 := proc(a,b,z)
-  local den, t1,t2,t3,t4;
-  den := a*b*(a+b);
-  if den = 0 then return Float(undefined); fi;
-
-  t1 := SafeEval(h1(a,b)*5^a);
-  t2 := SafeEval(h2(a,b)*5^(-b));
-  t3 := h3(a,b,z);
-  t4 := h4(a,b,z);
-
-  if not(type(t1,realcons) and type(t2,realcons) and type(t3,realcons) and type(t4,realcons)) then
-    return Float(undefined);
-  fi;
-
-  return SafeEval( (t1 + t2 + t3 - (1/10)*pospart(t4)) / den );
-end proc:
-
-# -------------------------
-# Exact zeta-derivative of Qcal5 (piecewise due to pospart(h4))
-#   - h1,h2 are independent of zeta
-#   - dh3 uses dM10,dM20
-#   - dh4 uses dM11,dM21 (the extra GAMMA(...) term is constant in zeta)
-#   - d/dz pospart(h4) is dh4 when h4>0, and 0 when h4<0
-# -------------------------
-dQcal5 := proc(a,b,z)
-  local den, dm10,dm20, dm11,dm21, dh3, dh4, hv4, deriv_pospart;
-
-  if z <= 0 or z >= zetaMax then return Float(undefined); fi;
-
-  den := a*b*(a+b);
-  if den = 0 then return Float(undefined); fi;
-
-  dm10 := dM10(a,b,z);  dm20 := dM20(a,b,z);
-  dm11 := dM11(a,b,z);  dm21 := dM21(a,b,z);
-
-  if not(type(dm10,realcons) and type(dm20,realcons) and type(dm11,realcons) and type(dm21,realcons)) then
-    return Float(undefined);
-  fi;
-
-  dh3 := SafeEval( -(1-a)*sin(Pi*b)*dm10 - (1-a)*sin(Pi*a)*dm20 );
-
-  # derivative of h4 with respect to zeta (only M11,M21 depend on zeta)
-  dh4 := SafeEval( a*(b-a)*sin(Pi*b)*dm11 + sin(Pi*a)*( a*(b-a)*dm21 ) );
-
-  if not(type(dh3,realcons) and type(dh4,realcons)) then
-    return Float(undefined);
-  fi;
-
-  hv4 := h4(a,b,z);
-  if not(type(hv4,realcons)) then return Float(undefined); fi;
-
-  if hv4 > 0 then
-    deriv_pospart := dh4;
-  elif hv4 < 0 then
-    deriv_pospart := 0.0;
-  else
-    # At hv4=0 the derivative of pospart is not defined.
-    # Returning undefined prevents fsolve from targeting the kink point.
-    return Float(undefined);
-  fi;
-
-  return SafeEval( (dh3 - (1/10)*deriv_pospart) / den );
-end proc:
-
-# -------------------------
-# Minimize in zeta: endpoints + stationary points
-# -------------------------
-FindZetaMin := proc(a,b)
-  local cand, j, zL, zR, gL, gR, sol, zc, v, bestv, bestz;
-
-  cand := [0.0, zetaMax];
-
-  if a < b then
-    for j from 0 to NbinsZeta-1 do
-      zL := evalf(zetaMax*j/NbinsZeta);
-      zR := evalf(zetaMax*(j+1)/NbinsZeta);
-
-      if zL = 0 then zL := 1e-8; fi;
-      if zR = zetaMax then zR := zetaMax-1e-8; fi;
-
-      gL := dQcal5(a,b,zL);
-      gR := dQcal5(a,b,zR);
-
-      if type(gL,realcons) and type(gR,realcons) and gL*gR < 0 then
-        sol := fsolve( zz -> dQcal5(a,b,zz), zL..zR );
-        if sol <> NULL and type(sol,numeric) then
-          sol := evalf(sol);
-          if sol > 0 and sol < zetaMax then
-            cand := [op(cand), sol];
-          fi;
-        fi;
-      fi;
-    od;
-  fi;
-
-  bestv := +infinity: bestz := 0.0;
-  for zc in cand do
-    v := Qcal5(a,b,zc);
-    if type(v,realcons) and v < bestv then
-      bestv := v; bestz := zc;
-    fi;
-  od;
-
-  return [bestv, bestz];
-end proc:
-
-# -------------------------
-# Keep top-K candidates [value, alpha, beta, zeta]
-# -------------------------
-InsertBest := proc(bestList, rec, K)
-  local L;
-  L := [op(bestList), rec];
-  L := sort(L, (x,y)->evalb(x[1] < y[1]));
-  if nops(L) > K then return [op(1..K, L)]; else return L; fi;
-end proc:
-
-# -------------------------
-# Main parameter scan over alpha,beta
-# -------------------------
-bestVal := +infinity:
-bestRec := NULL:
+# Main two-dimensional scan. Records are [value,alpha,beta].
+bestVal := infinity:
+bestRec := []:
 bestList := []:
+nSuccess := 0:
+nFailed := 0:
+failedCases := []:
 
-printf("Start parameter scan (Qcal5 exact d/dzeta via shifts): %d (alpha,beta) pairs\n",
-       nops(alphaGrid)*nops(betaGrid));
+printf("Scanning %d (alpha,beta) pairs at %d-digit precision.\n",
+       nops(alphaGrid)*nops(betaGrid),Digits):
 
 for a in alphaGrid do
-  for b in betaGrid do
-    rec := FindZetaMin(a,b);  # [min value, argmin zeta]
-    if type(rec[1],realcons) then
-      bestList := InsertBest(bestList, [rec[1], a, b, rec[2]], Kkeep);
-      if rec[1] < bestVal then
-        bestVal := rec[1];
-        bestRec := [bestVal, a, b, rec[2]];
-        printf("NEW BEST %.12g at (alpha,beta,zeta)=(%.6g, %.6g, %.6g)\n",
-               bestVal, a, b, rec[2]);
-      fi;
-    fi;
-  od;
-od:
+    for b in betaGrid do
+        try
+            v := evalf(Qcal5star(a,b)):
+        catch:
+            v := Float(undefined):
+        end try:
 
-printf("\nDone.\n");
-if bestRec = NULL then
-  printf("No finite values were obtained.\n");
+        if IsFiniteReal(v) then
+            nSuccess := nSuccess+1:
+            bestList := InsertBest(bestList,[v,a,b],Kkeep):
+            if v < bestVal then
+                bestVal := v:
+                bestRec := [v,a,b]:
+                printf("NEW BEST %.16g at (alpha,beta)=(%.12g, %.12g)\n",
+                       v,a,b):
+            end if:
+        else
+            nFailed := nFailed+1:
+            if nops(failedCases)<10 then
+                failedCases := [op(failedCases),[a,b]]:
+            end if:
+        end if:
+    end do:
+end do:
+
+printf("\nFinite evaluations: %d; failed evaluations: %d\n",
+       nSuccess,nFailed):
+
+if nSuccess = 0 then
+    printf("No finite values were obtained.\n"):
 else
-  printf("Best value found: %.12g\n", bestRec[1]);
-  printf("At (alpha,beta,zeta) = (%.10g, %.10g, %.10g)\n", bestRec[2], bestRec[3], bestRec[4]);
+    printf("Smallest sampled value: %.20g\n",bestRec[1]):
+    printf("At (alpha,beta)=(%.16g, %.16g)\n",bestRec[2],bestRec[3]):
+    printf("Sampled value minus boundary reference: %.8e\n",
+           bestRec[1]-referenceValue):
+    printf("Top-%d sampled candidates:\n",nops(bestList)):
+    for i from 1 to nops(bestList) do
+        printf("  %d: %.16g at (%.12g, %.12g)\n",
+               i,bestList[i][1],bestList[i][2],bestList[i][3]):
+    end do:
+end if:
 
-  printf("\nTop-%d candidates:\n", Kkeep);
-  for i from 1 to nops(bestList) do
-    printf("  %d: val=%.12g at (alpha,beta,zeta)=(%.8g, %.8g, %.8g)\n",
-           i, bestList[i][1], bestList[i][2], bestList[i][3], bestList[i][4]);
-  od;
-fi:
+if nFailed > 0 then
+    printf("Inspect failed cases before accepting this run. First cases:\n"):
+    print(failedCases):
+end if:

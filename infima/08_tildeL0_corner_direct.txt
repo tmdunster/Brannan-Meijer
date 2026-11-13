@@ -34,9 +34,9 @@ sMax := 0.5:
 Lraw00 :=
 1/(2*Pi)*
 (
-  2*ln(sqrt(exp(2*s)+1-2*exp(s)*cos(phi))/(exp(s)+1))*ln(exp(s)-1)
+  2*ln(sqrt((exp(s)-1)^2+4*sin(phi/2)^2*exp(s))/(exp(s)+1))*ln(exp(s)-1)
   + ln(exp(s)+1)^2
-  - ln(sqrt(exp(2*s)+1-2*exp(s)*cos(phi)))^2
+  - ln(sqrt((exp(s)-1)^2+4*sin(phi/2)^2*exp(s)))^2
   + ln(sin(phi/2))*ln(4*sin(phi/2)/s^2)
 ):
 
@@ -53,9 +53,9 @@ ans := Minimize(
 ):
 
 printf("minimum = %.12e\n", ans[1]);
-printf("phi     = %.12e\n", rhs(ans[2][1]));
-printf("s       = %.12e\n", rhs(ans[2][2]));
-printf("s/phi   = %.12e\n", rhs(ans[2][2])/rhs(ans[2][1]));
+printf("phi     = %.12e\n", eval(phi,ans[2]));
+printf("s       = %.12e\n", eval(s,ans[2]));
+printf("s/phi   = %.12e\n", eval(s,ans[2])/eval(phi,ans[2]));
 
 # Expected behaviour:
 # The minimum should be above -0.0377104213.  The global negative value

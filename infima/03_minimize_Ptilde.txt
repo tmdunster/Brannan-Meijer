@@ -44,7 +44,9 @@ CosGrid := proc(L,R,N)
 end proc:
 
 alphaGrid := CosGrid(eps, 1.0-eps, Nalpha):
-betaGrid  := CosGrid(eps, 1.0-eps, Nbeta):
+# Include both sides of the beta=1/4 branch boundary explicitly.
+betaGrid := sort([op(CosGrid(eps,1-eps,Nbeta)),
+                  evalf(1/4-eps),evalf(1/4),evalf(1/4+eps)]):
 
 pospart := x -> max(x,0):
 
@@ -62,7 +64,7 @@ end proc:
 # Endpoint-safe factor
 # -------------------------
 C1expr := proc(a)
-  if type(a,numeric) and abs(evalf(a-1)) < 10^(-8) then
+  if a = 1 then
     return 1/Pi;
   else
     return (1-a)/sin(Pi*a);
@@ -113,7 +115,7 @@ A1safe := proc(a,ph)
 local r;
   r := 2*sin(ph/2);
 
-  if abs(evalf(a-1)) < 10^(-8) then
+  if a = 1 then
     return evalf((2-r)/Pi);
   else
     return evalf(C1expr(a)*(2^a-r^a)/GAMMA(1+a));
