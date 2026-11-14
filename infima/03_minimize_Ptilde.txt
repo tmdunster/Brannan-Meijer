@@ -20,7 +20,7 @@
 ############################################################
 
 restart:
-Digits := 50:
+Digits := 80:
 with(ListTools):
 
 
@@ -30,10 +30,10 @@ with(ListTools):
 phi0 := 0.061:
 phiL := 0.0:
 phiR := phi0:
-eps  := 1e-10:
+eps  := 10^(-12):
 
-Nalpha := 81:
-Nbeta  := 81:
+Nalpha := 161:
+Nbeta  := 161:
 NbinsPhi := 120:
 Kkeep := 10:
 

@@ -9,19 +9,27 @@
 # approached at alpha=0, beta=0.3390014599579164....
 # 
 # Run this entire standalone file. It scans a finite parameter
-# grid and reports every failed evaluation; it does not certify
-# a continuous global minimum by itself.
+# grid, then refines in beta at alpha=1e-12, 1e-16 and 1e-20.
+# Failed evaluations are reported separately for both stages.
+# These numerical searches do not certify a continuous global minimum.
 ############################################################
 
 restart:
-Digits := 60:
+Digits := 80:
 
 # Interior, endpoint-biased parameter grid. Exact endpoint limits are
 # evaluated separately; the origin has directional limits.
-Nalpha := 61:
-Nbeta := 61:
-eps := 10^(-10):
+Nalpha := 121:
+Nbeta := 241:
+eps := 10^(-12):
 Kkeep := 10:
+
+# Local beta minimizations after the grid scan. Golden-section
+# refinement uses values only, with no Meijer parameter derivatives.
+refineAlpha := [eps,eps/10^4,eps/10^8]:
+refineDigits := 120:
+betaTol := 10^(-24):
+maxRefineSteps := 200:
 
 CosGrid := proc(L,R,N)
     local i;
@@ -98,6 +106,50 @@ Hcal5star := proc(a::numeric,b::numeric)
     return evalf(main/(aa*bb*(aa+bb))-correction);
 end proc:
 
+# Local beta minimization on an interval selected by the grid scan.
+# Returns [value,beta,final interval width,iteration count].
+MinimizeBeta := proc(aa::numeric,bL::numeric,bR::numeric,tol::numeric)
+    local L,R,g,c,d,fc,fd,mid,fmid,steps;
+    L := evalf(bL);
+    R := evalf(bR);
+    g := evalf((sqrt(5)-1)/2);
+    c := R-g*(R-L);
+    d := L+g*(R-L);
+    fc := Hcal5star(aa,c);
+    fd := Hcal5star(aa,d);
+    if not IsFiniteReal(fc) or not IsFiniteReal(fd) then
+        error "nonfinite initial refinement value";
+    end if;
+
+    steps := 0;
+    while R-L>tol and steps<maxRefineSteps do
+        if fc<fd then
+            R := d;
+            d := c;
+            fd := fc;
+            c := R-g*(R-L);
+            fc := Hcal5star(aa,c);
+        else
+            L := c;
+            c := d;
+            fc := fd;
+            d := L+g*(R-L);
+            fd := Hcal5star(aa,d);
+        end if;
+        if not IsFiniteReal(fc) or not IsFiniteReal(fd) then
+            error "nonfinite refinement value";
+        end if;
+        steps := steps+1;
+    end do;
+    if R-L>tol then error "refinement iteration limit reached"; end if;
+    mid := (L+R)/2;
+    fmid := Hcal5star(aa,mid);
+    if not IsFiniteReal(fmid) then error "nonfinite final value"; end if;
+    if fc<fmid then mid := c; fmid := fc; end if;
+    if fd<fmid then mid := d; fmid := fd; end if;
+    return [evalf(fmid),evalf(mid),evalf(R-L),steps];
+end proc:
+
 referenceValue := 0.03881373940680938519125115754:
 printf("Boundary reference Hcal5star: %.20g\n",referenceValue):
 printf("Reference beta: 0.3390014599579164...; alpha tends to 0.\n"):
@@ -109,6 +161,7 @@ bestList := []:
 nSuccess := 0:
 nFailed := 0:
 failedCases := []:
+edgeBest := []:
 
 printf("Scanning %d (alpha,beta) pairs at %d-digit precision.\n",
        nops(alphaGrid)*nops(betaGrid),Digits):
@@ -124,6 +177,13 @@ for a in alphaGrid do
         if IsFiniteReal(v) then
             nSuccess := nSuccess+1:
             bestList := InsertBest(bestList,[v,a,b],Kkeep):
+            if a=alphaGrid[1] then
+                if nops(edgeBest)=0 then
+                    edgeBest := [v,a,b]:
+                elif v<edgeBest[1] then
+                    edgeBest := [v,a,b]:
+                end if:
+            end if:
             if v < bestVal then
                 bestVal := v:
                 bestRec := [v,a,b]:
@@ -154,6 +214,43 @@ else
         printf("  %d: %.16g at (%.12g, %.12g)\n",
                i,bestList[i][1],bestList[i][2],bestList[i][3]):
     end do:
+end if:
+
+# Select the two neighbouring beta grid points around the lowest
+# value on the smallest-alpha row, then refine inside that interval.
+if nops(edgeBest)>0 then
+    iBest := 1:
+    for j from 2 to nops(betaGrid) do
+        if abs(betaGrid[j]-edgeBest[3])
+           <abs(betaGrid[iBest]-edgeBest[3]) then iBest := j: end if:
+    end do:
+    betaLeft := betaGrid[max(1,iBest-1)]:
+    betaRight := betaGrid[min(nops(betaGrid),iBest+1)]:
+    refineResults := []:
+    nRefineFailed := 0:
+    gridDigits := Digits:
+    Digits := refineDigits:
+    printf("\nSmall-alpha beta minimizations on [%.16g, %.16g]\n",
+           betaLeft,betaRight):
+    printf("Refinement precision: %d digits.\n",Digits):
+    for aSmall in map(evalf,refineAlpha) do
+        try
+            rec := MinimizeBeta(aSmall,betaLeft,betaRight,betaTol):
+            refineResults := [op(refineResults),[rec[1],aSmall,rec[2]]]:
+            printf("alpha=%.8e: beta=%.25g, Hcal5star=%.25g\n",
+                   aSmall,rec[2],rec[1]):
+            printf("  minus stored reference: %.10e; interval width: %.4e\n",
+                   rec[1]-referenceValue,rec[3]):
+        catch:
+            nRefineFailed := nRefineFailed+1:
+            printf("Refinement failed at alpha=%.8e\n",aSmall):
+        end try:
+    end do:
+    printf("Successful refinements: %d; failed refinements: %d\n",
+           nops(refineResults),nRefineFailed):
+    Digits := gridDigits:
+else
+    printf("No finite smallest-alpha row was available for refinement.\n"):
 end if:
 
 if nFailed > 0 then

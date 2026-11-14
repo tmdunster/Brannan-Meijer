@@ -14,13 +14,13 @@
 ############################################################
 
 restart:
-Digits := 60:
+Digits := 80:
 
 # Interior, endpoint-biased parameter grid. Exact endpoint limits are
 # evaluated separately; the origin has directional limits.
-Nalpha := 61:
-Nbeta := 61:
-eps := 10^(-10):
+Nalpha := 121:
+Nbeta := 241:
+eps := 10^(-12):
 Kkeep := 10:
 
 CosGrid := proc(L,R,N)
