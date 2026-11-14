@@ -43,7 +43,7 @@ File 01 also refines in beta at alpha=1e-12, 1e-16 and 1e-20, using 120 digits. 
 - `12_minimize_tildeL0_S_tail.txt`: the s>=10 tail with the S normalization, including a lower-bound check for the phi=0, beta=1 edge.
 - `13_minimize_tildeL0_S0_tail.txt`: the s>=10 tail with the S0 normalization, including its one-sided closure at beta=1/4. The exact phi=0 limit is zero for fixed s>0.
 
-In files 01-02, numerical Meijer evaluations are at zeta=81/4; values needed at zeta=0 are explicit gamma values. Files 05-06 on sample four phi values: eps, phi0/3, 2*phi0/3 and phi0, since phi0=0.061 is small. Files 07-10 provide additional checks near the joint corner.
+In files 01-02, numerical Meijer evaluations are at argument 81/4; values needed at zeta=0 are explicit gamma values. Files 05-06 on sample four phi values: eps, phi0/3, 2*phi0/3 and phi0, since phi0=0.061 is small. Files 07-10 provide additional checks near the joint corner.
 
 The tail scripts use t=1/s in [0,0.1], setting the exact t=0 limit to zero. They apply Maple's Optimization:-NLPSolve in matrix form to each cell and check all vertices. Any failed solve or evaluation marks the scan incomplete. File 11 additionally checks 64 cells on the rho=0 face, and file 12 checks four cells for its boundary lower bound.
 
