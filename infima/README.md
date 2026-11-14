@@ -50,7 +50,15 @@ Matrix-form calling conventions follow [Maple's NLPSolve documentation](https://
 
 ## Reported Maple runs
 
-The supplied file-01 output records 3,721 finite evaluations at 60 digits and zero failures. Its smallest sampled value was 0.038824881080913603865 at alpha=1e-10 and beta=0.345491502843428, approximately 1.11416741e-5 above the printed boundary reference. Completed runs of the fine-grid configurations supplied in files 01-03 have not yet been reported here.
+The fine-grid runs of files 01-03 completed with results consistent with their expected boundary values. Files 01 and 02 each returned 29,161 finite evaluations at 80-digit precision, with zero failed evaluations.
+
+| File | Best grid/search value reported | Parameters | Difference from printed boundary reference |
+| --- | ---: | --- | ---: |
+| 01 | 0.038813759820009260645 | alpha=1e-12, beta=0.3392802673487406 | 2.04131999e-8 |
+| 02 | 3.1274558648657449707 | alpha=1e-12, beta=1-1e-12 | 7.91133598e-12 |
+| 03 | approximately 0.304351905009 | alpha=beta=1-1e-12, phi=0.061 | 1.936e-13 |
+
+File 01 also completed all three beta refinements at 120-digit precision, with zero failed refinements. At alpha=1e-20 it returned Hcal5star(alpha,beta) approximately 0.03881373940680938519125116 at beta approximately 0.3390014599579164229135584. The final beta bracket width was approximately 8.7208e-25.
 
 Reported runs of files 02-10 were consistent with the expected values. The hybrid-grid runs of 05 and 06 returned approximately -0.02729555139436756 and -0.03728635132259653, respectively. Files 07 and 10 reproduced approximately -0.037710421382 with s/phi approximately 0.52813987365. Files 08 and 09 agreed on approximately -0.03707522427866 on their domains bounded away from phi=0.
 
@@ -68,6 +76,6 @@ All listed tail runs reported zero failed cells and zero failed vertex evaluatio
 
 ## Scope and runtime
 
-These scripts provide numerical checks on the stated grids and domains. Successful local solves do not certify global minima, and bracketed searches locate the roots they bracket. Files 05-06 only sample four phi values since the interval is very small; files 07-10 supplement the checks near the joint corner. The separate cell optimizations on s<=10 and those for Hcal5star(alpha,beta), Qcal5star(alpha,beta) and Ptilde(alpha,beta;phi) described in the paper are outside this collection.
+These scripts provide numerical checks on the stated grids and domains. Successful local solves do not certify global minima, and bracketed searches locate the roots they bracket. Files 05-06 only sample four phi values since the interval is very small; files 07-10 supplement the checks near the joint corner.
 
 Independent high-precision evaluations have checked representative function values. Runtime depends on grid sizes, precision and root bracketing. Reduce grid parameters for a short execution check before a full run.
