@@ -6,10 +6,8 @@
 #
 #   exp(-s) s^(-1/2) phi^(1/2) tildeL(0,0,phi;s).
 #
-# Direct two-variable minimisation in (phi,s) is numerically unstable,
-# because the minimum is approached at the singular corner phi -> 0,
-# s -> 0 with s proportional to phi.  Instead we put s = c phi
-# and minimise the resulting one-variable limiting expression
+# Set s=c*phi and let phi tend to zero with c>0 fixed.
+# The resulting one-variable limiting expression is
 #
 #   F(c) = (1/(8 Pi sqrt(c))) ln(1+c^2) ln(c^4/(1+c^2)),  c > 0.
 #

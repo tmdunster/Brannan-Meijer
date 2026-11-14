@@ -32,16 +32,34 @@ eps  := 1e-10:
 # Parameter grids
 Nab := 60:
 
-# Avoid exact 0 and exact 1 in the grid search.
-# Endpoint/corner limits are handled separately in the paper.
+# Hybrid grids: uniform points plus geometric edge samples.
+# edgeDigits=14 adds points at distances 10^(-k), k=2..14,
+# from both physical ends of each parameter interval.
+# Increasing edgeDigits approaches the endpoints more closely.
+edgeDigits := 14:
 
-# New S rectangle:
+AddEdges := proc(G,L,R)
+  local k;
+  return sort(convert({op(G),
+                       seq(evalf(L+10^(-k)),k=2..edgeDigits),
+                       seq(evalf(R-10^(-k)),k=2..edgeDigits)},list));
+end proc:
+
+# Uniform grid component; exact endpoint values are excluded.
+
+# S rectangle:
 #   S = [0,1] x [1/4,1]
 alphagrid_S := [seq(eps + i*((1-eps)-eps)/Nab, i=0..Nab)]:
 betagrid_S  := [seq(1/4 + j*((1-eps)-1/4)/Nab, j=0..Nab)]:
 
-# Four phi samples only. This script is a coarse grid check on
-# eps<=s<=10; continuous-phi searches on this interval are separate.
+alphagrid_S := AddEdges(alphagrid_S,0,1):
+betagrid_S  := AddEdges(betagrid_S,1/4,1):
+
+printf("Hybrid grids: %d alpha points, %d beta points\n",
+       nops(alphagrid_S),nops(betagrid_S));
+
+# Four phi samples on eps<=s<=10. Continuous-phi searches
+# on this interval are separate.
 # File 12_minimize_tildeL0_S_tail.txt supplies the s>=10 tail check.
 phigrid := [eps, phi0/3, 2*phi0/3, phi0]:
 

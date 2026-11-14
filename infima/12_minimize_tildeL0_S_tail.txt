@@ -9,8 +9,8 @@
 # endpoint limits are not substituted into the interior formulas.
 # The t=0 value is supplied analytically as zero.
 #
-# Run the complete standalone file. No Maple run results are
-# claimed by the accompanying independent formula checks.
+# Run the complete standalone file. Reported Maple results
+# are listed in the README.
 ############################################################
 
 restart:
@@ -55,7 +55,6 @@ IndexTuples := proc(counts)
 end proc:
 
 # Matrix-form NLPSolve uses a Vector callback and numeric derivatives.
-# The physical objective F and its argument order are unchanged.
 # Every cell starts at its centre.
 # Vertices are also evaluated, including the exact t=0 face.
 ScanCells := proc(F,lower,upper,counts,caption)
@@ -184,8 +183,7 @@ TildeL0Tail := proc(a::numeric,b::numeric,ph::numeric,t::numeric,h::numeric)
     return evalf(ph^h*(main+poly)/(a+b));
 end proc:
 
-# The S0 search includes its one-sided closure at beta=1/4,
-# evaluated with the S0 normalization, when this is the S0 file.
+# The S search includes beta=1/4 with the S normalization.
 Objective := proc(A::numeric,B::numeric,P::numeric,t::numeric)
     return TildeL0Tail(Logistic(A),Logistic(B),phi0*exp(-P),t,1);
 end proc:
